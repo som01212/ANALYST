@@ -1,0 +1,31 @@
+oracle 21C는 데이터베이스 서버임. 기본 뼈대 건물. 
+이고 SQL은 건물내 시스템임. 
+
+sqlplus / as sysdba
+C:\Users\itwill>sqlplus / as sysdba
+
+ select sysdate from dual;
+
+alter session set "_ORACLE_SCRIPT"=true;
+세션이 변경되었습니다.
+SQL> create user scott identified by tiger;
+사용자가 생성되었습니다.
+
+SQL> grant dba to scott;
+권한이 부여되었습니다.
+
+SQL> EXIT
+
+예전에는 C## ID 로 구성함.
+
+C:\Users\itwill>sqlplus scott/tiger 로그인 아이디 비번
+다음에 접속됨:
+
+SQL> select systimestamp from dual;
+
+SYSTIMESTAMP
+---------------------------------------------------------------------------
+26/05/27 15:01:39.057000 +09:00
+
+cls 클리어
+
