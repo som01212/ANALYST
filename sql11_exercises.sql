@@ -24,6 +24,9 @@ select e. last_name, d. department_name from employees e, departments d
 where e. department_id=d.department_id(+); 
 --> 107개의 행( 직원 테이블에서 department_id가 null인 직원도 출력)
 
+select e. last_name, d. department_name from employees e, departments d
+where e. department_id(+)=d.department_id; 
+
 -- 3. 직원의 이름과 직무 이름(job title)을 출력.
 select e.last_name, j.job_title from employees e join jobs j on e.job_id =j.job_id;
 
@@ -32,7 +35,7 @@ where e.job_id =j.job_id;
 
 -- 4. 직원의 이름과 직원이 근무하는 도시 이름(city)를 출력. 3개 조인
 select e.last_name, l.city 
-from employees e join departments d on e.department_id= d.department_id
+from employees e  join departments d on e.department_id= d.department_id
     join locations l on d.location_id=l.location_id ;
 --> 106개의 행.
 
@@ -61,61 +64,149 @@ between to_date('2008/01/01', 'YYYY/MM/DD') and to_date('2008/12/31', 'YYYY/MM/D
 select first_name||'  '|| last_name, hire_date from employees where to_char(hire_date,'YYYY')=2008;
 
 -- 7. 2008년에 입사한 직원들의 부서 이름과 부서별 인원수 출력.
-select
+
+select d.department_name, count(*) as 직원수
+from employees e
+join departments d on e.department_id=d.department_id
+where hire_date between to_date('2008-01-01','YYYY-MM-DD') and to_date('2008-12-31','YYYY-MM-DD')
+group by d.department_name; -- 그룹컬럼은 셀렉트에 사용할수있음
+
+
 -- 8. 2008년에 입사한 직원들의 부서 이름과 부서별 인원수 출력. 
 --    단, 부서별 인원수가 5명 이상인 경우만 출력.
+select d.department_name, count(*) as 직원수
+from employees e
+join departments d on e.department_id=d.department_id
+where hire_date between to_date('2008-01-01','YYYY-MM-DD') and to_date('2008-12-31','YYYY-MM-DD')
+group by d.department_name
+having count(*)>5;
+-- (참고) 부서별 직원수 
+-- inner join인 경우 -- 부서번호가 null인 직원이 포함되지 않음
+select d.department_name, count(*)
+from employees e join departments d on e.department_id= d.department_id
+group by d.department_name; 
+
+-- left join인 경우 
+select d.department_name, count(*)
+from employees e left join departments d on e.department_id= d.department_id
+group by d.department_name; 
+
+-- full join
+select d.department_name, count(e.employee_id)
+from employees e full join departments d on e.department_id= d.department_id
+group by d.department_name; 
 
 -- 9. 부서번호, 부서별 급여 평균을 검색. 소숫점 한자리까지 반올림 출력.
 select department_id, round(avg(salary),1) from employees
-group by department_id;
+group by department_id
+order by department_id;
 
 -- 10. 부서별 급여 평균이 최대인 부서의 부서번호, 급여 평균을 출력.
 -- (1) having 절과 서브쿼리 사용
-select avg(salary) from employees  ;
-select ,avg(salary),department_id,rank()over(order by salary) from employees;
-
-select department_id, avg(salary) from employees group by department_id
-having avg(salary);
-
-select department_id, avg(salary) from employees group by department_id
-having avg(salary) > (select avg(salary) from employees ); 
-
--- (2) from 절에서의 서브쿼리 사용
-select t.*
-from 
-(select rank()over(order by salary) from employees ) t 
-where select avg(salary) from employees;
-
-select department_id, avg(salaty) from employees ;
--- (3) with 식별자 as (서브쿼리) 사용
--- (4) offset-fetch 사용(내림차순 정렬 & Top-N 쿼리)
-
--- 11. 사번, 직원 이름, 국가 이름, 급여 출력.
-select employee_id, last_name, salary, (
-select country_name from countries)
-from employees   ;
--- 12. 국가이름, 국가별 급여 합계 출력.
-select country_name, (select sum(salary) from employees)
-from countries
-group by country_name;
--- 13. 사번, 직원이름, 직무 이름, 급여를 출력.
-select e.employee_id, e.last_name, e.salary, jb.job_title from employees e join jobs jb
-on e.job_id= jb.job_id;
-
--- 14. 직무 이름, 직무별 급여 평균, 최솟값, 최댓값을 출력.
-select e.salary, jb.job_title,
-from employees e join jobs jb
-on e.job_id= jb.job_id;
-
-(select avg(salary) from employees)
-(select min(salary) from employees)
-(select max(salary) from employees)
+select department_id, round(avg(salary),1) from employees 
+group by department_id
+having avg(salary)= (
+select max(avg(salary)) from employees 
+group by department_id)
 ;
 
+-- (2) from 절에서의 서브쿼리 사용
+select max( t.avg(salary)
+from ( 
+select department_id, avg(salary) 
+from employees 
+group by department_id
+    ) t ;
+
+
+-- (3) with 식별자 as (서브쿼리) 사용
+with t as (
+    select department_id, avg(salary)
+    from employees
+    group by department_id
+    )
+select t.department_id, avg(salary)
+from t
+where t. avg(salary) =( 
+select max(t.avg(salary)) 
+from t
+);
+
+
+
+-- (4) offset-fetch 사용(내림차순 정렬 & Top-N 쿼리)
+select department_id, round(avg(salary))
+from employees group by department_id
+order by avg(salary) desc
+offset 0 rows
+fetch next 1 rows only;
+
+-- 첫번째는 서브쿼리, 탑앤쿼리
+
+-- 11. 사번, 직원 이름, 국가 이름, 급여 출력.
+select e.employee_id, e.last_name,  c.country_name, e.salary
+from employees e 
+join departments d on e.department_id=d.department_id
+join locations l on d.location_id=l.location_id
+join countries c on l.country_id=c.country_id;
+
+select e.employee_id, e.last_name,  c.country_name, e.salary
+from employees e , departments d, locations l, countries c
+where e.department_id=d.department_id
+and d.location_id=l.location_id
+and l.country_id=c.country_id;
+
+
+-- 12. 국가이름, 국가별 급여 합계 출력.
+select c.country_name, sum(e.salary), count(*)
+from employees e
+join departments d on e.department_id=d.department_id
+join locations l on d.location_id=l.location_id
+join countries c on l.country_id=c.country_id
+group by c.country_name;
+
+-- 13. 사번, 직원이름, 직무 이름, 급여를 출력.
+select e.employee_id, e.last_name, e.salary, jb.job_title 
+from employees e join jobs jb on e.job_id= jb.job_id;
+
+-- 14. 직무 이름, 직무별 급여 평균, 최솟값, 최댓값을 출력.
+select j.job_title, avg(e.salary), min(salary), max(salary)
+from employees e join jobs j
+on e.job_id= j.job_id
+group by j.job_title;
+
 -- 15. 국가 이름, 직무 이름, 국가별 직무별 급여 평균을 출력.
-select country_name, (select job_title from jobs)  from countries;
+select c.country_name, j.job_title, round(avg(salary),1), count(*)
+from employees e join jobs j on e.job_id=j.job_id
+    join departments d on  e.department_id=d.department_id
+    join locations l on d.location_id=l.location_id
+    join countries c on l.country_id=c.country_id
+    group by c.country_name, j.job_title;
+
 -- 16. 국가 이름, 직무 이름, 국가별 직무별 급여 합계을 출력.
 --     미국에서, 국가별 직무별 급여 합계가 50,000 이상인 레코드만 출력.
+select c.country_name, j.job_title, sum(salary)
+from employees e join jobs j on e.job_id=j.job_id
+    join departments d on  e.department_id=d.department_id
+    join locations l on d.location_id=l.location_id
+    join countries c on l.country_id=c.country_id
+where c.country_id='US'
+group by c.country_name, j.job_title
+having sum(salary) >=50000;
 
+-- 비교
+select c.country_name, j.job_title, sum(e.salary)
+from employees e join jobs j on e.job_id=j.job_id
+    join departments d on  e.department_id=d.department_id
+    join locations l on d.location_id=l.location_id
+    join countries c on l.country_id=c.country_id
+group by c.country_name, j.job_title
+having c.country_name='United States of America'
+    and sum(e.salary) >= 5000;
+    
 -- 17. 부서번호, 부서이름, 부서 매니저 사번, 부서 매니저 이름, 부서 매니저 직무, 부서 매니저 급여 출력
-select d.department_id, d.department_name, d.manager_id, from departments d join employees e on d.department_id=e.department.id;
+select d.department_id, d.department_name, d.manager_id, j.job_id, e.last_name, e.salary,e.employee_id
+--  d.manager_id, e.employee_id 둘다 매니저 사번임.
+from departments d join employees e on d.manager_id=e.employee_id
+    join jobs j on e.job_id=j.job_id
+    order by d.department_id;
