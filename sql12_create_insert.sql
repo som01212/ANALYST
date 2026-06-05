@@ -84,3 +84,15 @@ values (12345);
 insert into ex_students (student_id) 
 values ('abcd');
 --> 수치가 부적합. 아이디는 숫자, abcd는 숫자로 변환할 수 없는 문자열
+*/
+
+insert into ex_students (student_id)
+values('1010');
+--> 오라클은 '1010'문자열을  to_number() 함수를 사용해서 정수1010으로 변환 후 삽입.
+
+insert into ex_students ( student_name)
+values ('aaaaaaaaaaaa');
+--> 최대 10글자(character)까지 저장할 수 있는 컬럼에 11글자를 삽입하려고 하기 때문에 에러. 한글도 10글자 영어도10글자임.
+
+commit;
+select * from ex_students;
