@@ -96,3 +96,59 @@ values ('aaaaaaaaaaaa');
 
 commit;
 select * from ex_students;
+
+-- 오라클에서 문자열 타입 컬럼을 선언할 때 char(n byte)/ char(n cahr) 또는 varchar2(n byte)/ varchar2(n char).
+-- byte/char 단위를 생략하면 기본값으로 byte단위
+-- 오라클에서 문자를 저장할 때 UTF-8 인코딩을 사용하는 경우,
+-- 영문자, 숫자, 특수기호 -> 한글자를 저장할 때 1byte를 사용
+-- 한글, 일본어, 중국어, ... -> 한글자를 저장할 때 3byte를 사용
+--
+
+create table ex_byte (
+    col_str varchar2(5) 
+    );
+    
+insert into ex_byte values ('abc12');
+insert into ex_byte values('abc123');--> 에러 6byte
+insert into ex_byte values('홍길동');--> 에러 9byte
+insert into ex_byte values('홍12');--> 5byte
+
+-- create table 연습: emp테이블과 같은 이름과 같은 타입의 컬럼들을 갖는 테이블을 만들기.
+-- 테이블이름은(ex_emp)
+create table ex_emp (
+        empno         number(4,0), --4자리, 소숫점이하숫자는 0. number(4) 와 동일함
+        ename          varchar2(10 byte), -- varchar2(10) 과 동일함
+        job              varchar2(9 byte),
+        mgr             number(4,0),
+        hiredate       date,
+        sal               number(7,2), -- 전체 7자리 중 소숫점이하는 2자리까지.12345.67
+        comm         number(7,2),
+        deptno        number(2,0)
+        );
+        
+drop table ex_emp; -- 테이블 삭제
+
+-- ROLLBACK: 이전 commit 된 이후에 테이블에서 변경된 내용( insert, update,delete)을 
+-- 이전 commit 상태로 되돌림. create table로 생성된 테이블을 삭제하지 않음.
+-- commit: 마지막에 commit된 이후에 테이블에서 변경된 내용(insert, update, delate)들을 영구히 저장.
+
+-- create table 테이블 이름 as select 구문: 테이블을 생성하면서 select한 내용들을 복사. 
+-- dept 테이블의 구조(컬럼/ 데이터 타입)과 내용(행) ex_dept1 테이블로 복사. 
+create table ex_dept1 
+as select * from dept;
+-- dept 테이블의 구조만(컬럼/ 데이터타입)만 복사, 데이터는 복사하지 않기.
+SELECT * FROM EX_DEPT2;
+
+create table ex_dept2
+as select * from dept where deptno= -1;
+
+-- ex_emp_dept: emp테이블과 dept 테이블을 사용해서 
+-- 사번, 이름, 업무, 입사일, 급여, 부서번호, 부서이름, 위치 컬럼을 갖는 테이블.
+
+create table ex_emp_dept
+as 
+select e.empno, e.ename, e.hiredate, e.sal, e.deptno, d.dname, d.loc 
+from emp e, dept d 
+where e.deptno=d.deptno
+order by e.empno;
+
